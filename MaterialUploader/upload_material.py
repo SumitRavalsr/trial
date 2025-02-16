@@ -8,6 +8,7 @@ from uuid import uuid4
 from langchain_core.documents import Document
 import re
 import unicodedata
+from bs4 import BeautifulSoup  # For robust HTML removal
 
 pinecone_api_key = "pcsk_ffUJz_7hkW8pZMvpf99EXNU1y65SehYwa2nPKSbrtC8SCZX3mqUGPeYahH6gXpae1SNY6"  # Shivam's Api Key For Vector Store
 pinecone_environment = "us-east-1"  
@@ -18,22 +19,11 @@ model_id = "sentence-transformers/all-MiniLM-L6-v2"
 hf_token = "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"
 
 def preprocess_text(text):
-    # 1. Unicode Normalization:
     text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
-
-    # 2. Remove URLs:
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
-
-    # 3. Remove HTML tags (if present):
-    text = re.sub('<.*?>+', '', text)
-
-    # 4. Remove special characters and non-alphanumeric characters (keep hyphens and apostrophes):
-    text = re.sub(r'[^a-zA-Z0-9\s-]', '', text) #Keep hyphens and apostrophes
-    #text = re.sub(r'[^\w\s-]', '', text)
-
-    # 5. Remove extra whitespace:
+    text = BeautifulSoup(text, "html.parser").get_text()  # Robust HTML removal
+    text = re.sub(r'[^a-zA-Z0-9\s-]', '', text)  # Keep hyphens and apostrophes
     text = re.sub(r'\s+', ' ', text).strip()
-
     return text
 
 def upload_and_analyze():
@@ -72,6 +62,45 @@ def store_in_vector(docs,embeddings):
     st.rerun()
 
 def generate_embedding(text):
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    chunks = text_splitter.split_text(text)
+
+    filtered_chunks = [chunk for chunk in chunks if chunk.strip()]
+
+    docs = []
+    embeddings_list = []
+
+    for chunk in filtered_chunks:
+        preprocessed_chunk = preprocess_text(chunk)
+
+        if not preprocessed_chunk:
+            continue
+
+        try:
+            embedding = HuggingFaceEndpointEmbeddings(model=model_id, task="feature-extraction", huggingfacehub_api_token=hf_token).embed_query(preprocessed_chunk)
+
+            if isinstance(embedding, list) and all(isinstance(x, float) for x in embedding) and len(embedding) > 0:
+                docs.append(Document(page_content=chunk, metadata={"source": "general pdf data"}))
+                embeddings_list.append(embedding)
+            else:
+                print("Invalid embedding for chunk (preprocessed):", preprocessed_chunk) #Debugging
+                st.warning(f"Invalid embedding for chunk (truncated): {preprocessed_chunk[:50]}...")
+
+        except Exception as e:
+            print("Error generating embedding for chunk (preprocessed):", preprocessed_chunk) #Debugging
+            print("Error:", e) #Debugging
+            st.error(f"Error generating embedding for chunk (truncated): {preprocessed_chunk[:50]}... Error: {e}")
+            continue
+
+    if docs:
+        embeddings = HuggingFaceEndpointEmbeddings(model=model_id, task="feature-extraction", huggingfacehub_api_token=hf_token)
+        store_in_vector(docs, embeddings)
+    else:
+        st.warning("No valid chunks found after filtering and preprocessing. Check your PDF content.")
+
+
+
+def generate_embedding3(text):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = text_splitter.split_text(text)
 
