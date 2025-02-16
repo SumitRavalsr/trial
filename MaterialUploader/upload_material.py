@@ -51,10 +51,44 @@ def store_in_vector(docs,embeddings):
     st.rerun()
 
 def generate_embedding(text):
-    text_splitter = SemanticChunker(HuggingFaceEndpointEmbeddings(model=model_id,task="feature-extraction",huggingfacehub_api_token=hf_token),breakpoint_threshold_type="gradient")
-    docs = text_splitter.create_documents([text])
-    embeddings = HuggingFaceEndpointEmbeddings(model=model_id,task="feature-extraction",huggingfacehub_api_token=hf_token)
-    store_in_vector(docs,embeddings)
+    # Use RecursiveCharacterTextSplitter - More robust
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50) # Adjust chunk size as needed
+    chunks = text_splitter.split_text(text)
+
+    # Filter out empty or whitespace chunks
+    filtered_chunks = [chunk for chunk in chunks if chunk.strip()] #Remove empty string from chunks
+
+    docs = []
+    embeddings_list = []  # Store embeddings for later use
+
+    for chunk in filtered_chunks:
+        try:
+            embedding = HuggingFaceEndpointEmbeddings(model=model_id, task="feature-extraction", huggingfacehub_api_token=hf_token).embed_query(chunk)
+            if isinstance(embedding, list) and all(isinstance(x, float) for x in embedding) and len(embedding) > 0: #Check if embedding is valid
+                docs.append(Document(page_content=chunk, metadata={"source": "general pdf data"}))
+                embeddings_list.append(embedding)
+            else:
+                st.warning(f"Invalid embedding for chunk: {chunk[:50]}...") #Log invalid embedding
+
+        except Exception as e:
+            st.error(f"Error generating embedding for chunk: {chunk[:50]}... Error: {e}")
+            continue # Skip this chunk and continue with the next
+
+
+    if docs:  # Only call store_in_vector if there are valid documents and embeddings
+        store_in_vector(docs, HuggingFaceEndpointEmbeddings(model=model_id, task="feature-extraction", huggingfacehub_api_token=hf_token))
+    else:
+        st.warning("No valid chunks found after filtering. Check your PDF content.")
+
+  
+
+
+
+    
+    # text_splitter = SemanticChunker(HuggingFaceEndpointEmbeddings(model=model_id,task="feature-extraction",huggingfacehub_api_token=hf_token),breakpoint_threshold_type="gradient")
+    # docs = text_splitter.create_documents([text])
+    # embeddings = HuggingFaceEndpointEmbeddings(model=model_id,task="feature-extraction",huggingfacehub_api_token=hf_token)
+    # store_in_vector(docs,embeddings)
 
 def upload_pdf():
     text = upload_and_analyze()
