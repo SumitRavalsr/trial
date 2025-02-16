@@ -23,3 +23,5 @@ streamlit-option-menu==0.3.13
 streamlit-lottie==0.0.5
 scikit-learn==1.5.1
 openai==1.61.1
+beautifulsoup4  # Add this line
+ 
