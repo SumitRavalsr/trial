@@ -1,5 +1,6 @@
 import streamlit as st
 import time, pinecone, json, re
+from openai import OpenAI
 import google.generativeai as genai
 from langchain_huggingface import HuggingFaceEmbeddings, HuggingFaceEndpointEmbeddings
 from langchain_pinecone import PineconeVectorStore
