@@ -1,7 +1,8 @@
 import streamlit as st
 import time,PyPDF2,pinecone
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
-from langchain_experimental.text_splitter import SemanticChunker
+# from langchain_experimental.text_splitter import SemanticChunker
+from langchain.text_splitter import RecursiveCharacterTextSplitter  # Correct Import
 from langchain_pinecone import PineconeVectorStore
 from uuid import uuid4
 from langchain_core.documents import Document
