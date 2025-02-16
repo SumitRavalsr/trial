@@ -71,7 +71,7 @@ def store_in_vector(docs,embeddings):
     st.session_state["uploaded_and_analyzed"] = True
     st.rerun()
 
-def generate_embedding(text):
+def generate_embedding1(text):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = text_splitter.split_text(text)
 
