@@ -7,6 +7,25 @@ from langchain_pinecone import PineconeVectorStore
 from uuid import uuid4
 from TestTopic.Pdf import generate_quiz_zip
 
+pinecone_api_key = "pcsk_ffUJz_7hkW8pZMvpf99EXNU1y65SehYwa2nPKSbrtC8SCZX3mqUGPeYahH6gXpae1SNY6"  # Shivam's Api Key For Vector Store
+pinecone_environment = "us-east-1"
+pinecone_index_name = "example-index"
+
+pc = pinecone.Pinecone(api_key=pinecone_api_key)
+
+model_id = "sentence-transformers/all-MiniLM-L6-v2"
+hf_token = "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"  ## Shivam's Write API for HF
+
+embeddings_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
+
+prompt_RAG_text = ""
+
+HF_API_KEY = "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"  ## Read API
+API_KEY = "AIzaSyAFUFDlRGjxn_VEDn24vQ1BeFnXuoc-SIM"  ## Gemini API
+openai = OpenAI(api_key=HF_API_KEY, base_url="https://api-inference.huggingface.co/v1")
+genai.configure(api_key=API_KEY)
 
 
 def extract_json(response_text):
